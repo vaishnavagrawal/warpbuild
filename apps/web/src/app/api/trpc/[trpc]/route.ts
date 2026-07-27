@@ -8,6 +8,7 @@ function handler(req: NextRequest) {
     endpoint: "/api/trpc",
     req,
     router: appRouter,
+    // @ts-expect-error - Next.js version mismatch in monorepo
     createContext: () => createContext(req),
   });
 }
