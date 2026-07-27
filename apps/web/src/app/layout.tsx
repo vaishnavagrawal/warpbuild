@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "nextjs-starter",
-	description: "nextjs-starter",
+	title: "WarpBuild",
+	description: "WarpBuild",
 };
 
 export default function RootLayout({
