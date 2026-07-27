@@ -35,6 +35,7 @@
     "db:studio": "turbo run db:studio -F @nextjs-starter/db",
     "db:generate": "turbo run db:generate -F @nextjs-starter/db",
     "db:migrate": "turbo run db:migrate -F @nextjs-starter/db",
+    "db:seed-analytics": "bun run scripts/seed-analytics-db.ts",
     "check": "biome check --write ."
   },
   "dependencies": {

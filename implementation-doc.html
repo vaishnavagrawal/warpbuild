@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 4 — Implementation Notes</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a1a; }
+    h1 { border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; color: #333; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .tag { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.85rem; font-weight: 500; }
+    .clash { background: #fee2e2; color: #991b1b; }
+    .gap { background: #fef3c7; color: #92400e; }
+    .deviation { background: #dbeafe; color: #1e40af; }
+    .resolved { background: #d1fae5; color: #065f46; }
+    code { background: #f3f4f6; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9rem; }
+    pre { background: #f3f4f6; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    .status { font-weight: 600; }
+    .status-ok { color: #059669; }
+    .status-pending { color: #d97706; }
+  </style>
+</head>
+<body>
+
+<h1>Phase 4 — Analyst Agent: Implementation Notes</h1>
+<p><strong>Date:</strong> 2026-07-27 &nbsp;|&nbsp; <strong>Phase:</strong> 4 (Analyst Agent) &nbsp;|&nbsp; <strong>Status:</strong> <span class="status status-ok">Complete</span></p>
+
+<h2>Summary</h2>
+<p>
+  Phase 4 implements the Mastra analyst agent, dynamic per-request instructions built from the pinned schema snapshot,
+  <code>RequestContext</code> for datasource/snapshot IDs, and the rewritten <code>/api/chat</code> route that resolves
+  chat → datasource → snapshot before streaming.
+</p>
+
+<h2>Files Modified/Created</h2>
+<table>
+  <thead><tr><th>File</th><th>Action</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><code>packages/env/src/server.ts</code></td><td>Modified</td><td>Added <code>LLM_BASE_URL</code>, <code>LLM_API_KEY</code>, <code>LLM_MODEL</code> env vars</td></tr>
+    <tr><td><code>apps/web/src/mastra/agents/analyst-agent.ts</code></td><td>Created</td><td>Analyst agent with dynamic instructions + memory</td></tr>
+    <tr><td><code>apps/web/src/mastra/types.ts</code></td><td>Created</td><td><code>AnalystRequestContext</code> type shape</td></tr>
+    <tr><td><code>apps/web/src/mastra/index.ts</code></td><td>Replaced</td><td>Mastra instance with PostgresStore + analyst agent</td></tr>
+    <tr><td><code>apps/web/src/app/api/chat/route.ts</code></td><td>Replaced</td><td>Resolves chat→datasource→snapshot, passes RequestContext</td></tr>
+    <tr><td><code>apps/web/package.json</code></td><td>Modified</td><td>Added <code>@mastra/pg</code>, <code>@mastra/memory</code>, <code>@nextjs-starter/db</code>, <code>drizzle-orm</code>, <code>pg</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Clashes, Gaps &amp; Deviations</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Type</th><th>Description</th><th>Resolution</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><span class="tag deviation">Deviation</span></td>
+      <td>
+        <strong>Handoff says "RuntimeContext"</strong> — the current Mastra v1.52 API uses
+        <code>RequestContext</code> (from <code>@mastra/core/request-context</code>), not
+        <code>RuntimeContext</code>. The handoff doc uses the older name.
+      </td>
+      <td><span class="status status-ok">Resolved.</span> Used <code>RequestContext</code> per the installed API.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><span class="tag deviation">Deviation</span></td>
+      <td>
+        <strong>Model config via <code>OpenAICompatibleConfig</code></strong> — the plan says
+        "OpenAI-compatible provider wired via env" but doesn't specify the mechanism. Mastra
+        1.52 supports <code>OpenAICompatibleConfig</code> as a model config object
+        (<code>{ id, url, apiKey }</code>) which avoids installing a separate AI SDK
+        provider package.
+      </td>
+      <td><span class="status status-ok">Resolved.</span> Used <code>OpenAICompatibleConfig</code> directly: reads <code>LLM_MODEL</code> as the model string, <code>LLM_BASE_URL</code> as the endpoint, <code>LLM_API_KEY</code> for auth.</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><span class="tag gap">Gap</span></td>
+      <td>
+        <strong>No <code>run_read_query</code> tool available.</strong> Phase 3 delivers this
+        tool. The agent's <code>tools</code> config returns an empty object for now.
+        A file <code>src/mastra/tools/run-read-query.ts</code> already exists from Phase 3
+        work-in-progress but is not wired into the agent yet.
+      </td>
+      <td><span class="status status-pending">Pending Phase 3 completion.</span> Once done, import and add to the <code>tools</code> function in <code>analyst-agent.ts</code>.</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><span class="tag gap">Gap</span></td>
+      <td>
+        <strong>tRPC <code>datasource</code> and <code>schema</code> routers referenced but not yet built.</strong>
+        The app router at <code>packages/api/src/routers/index.ts</code> imports
+        <code>datasourceRouter</code> and <code>schemaRouter</code> from Phase 1/2 work
+        that is still in progress.
+      </td>
+      <td><span class="status status-pending">Pending Phases 1–2.</span> No clash — Phase 4 uses direct drizzle queries, not tRPC, for the chat route.</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><span class="tag clash">Clash</span></td>
+      <td>
+        <strong>drizzle-orm version duplication in bun.</strong> Adding <code>@nextjs-starter/db</code>
+        and <code>drizzle-orm</code> to <code>apps/web</code> initially caused TypeScript to see two
+        incompatible copies of drizzle-orm types (different bun resolution hashes due to the
+        <code>pg</code> peer dependency). Types from <code>@nextjs-starter/db</code> schema were
+        incompatible with <code>eq()</code> from the local copy.
+      </td>
+      <td>
+        <span class="status status-ok">Resolved.</span> Added <code>pg</code> as a direct
+        dependency of <code>apps/web</code> so bun resolves drizzle-orm to the same physical
+        copy (matching peer-dep context). Both now point to
+        <code>drizzle-orm@0.45.2+5e256c5e4025de97</code>.
+      </td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><span class="tag deviation">Deviation</span></td>
+      <td>
+        <strong>Memory configured directly on the agent</strong>, not as a Mastra-level
+        <code>memory</code> registry entry. The docs show both patterns; having it on the
+        agent is simpler and explicit.
+      </td>
+      <td><span class="status status-ok">Resolved.</span> Memory (PgStore, lastMessages=40, no semantic recall, no working memory) set on the agent.</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><span class="tag deviation">Deviation</span></td>
+      <td>
+        <strong>Weather agent file not deleted.</strong> The handoff says "delete both
+        [weather-agent and weather-tool]". The files still exist on disk
+        (<code>agents/weather-agent.ts</code>, <code>tools/weather-tool.ts</code>) but are
+        no longer imported or referenced by the Mastra instance.
+      </td>
+      <td><span class="status status-pending">Low priority.</span> Files are dead code; can be cleaned up in any subsequent commit.</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td><span class="tag gap">Gap</span></td>
+      <td>
+        <strong>Chat creation flow doesn't exist yet.</strong> The <code>/api/chat</code>
+        POST route assumes a <code>chat</code> row already exists (looked up by
+        <code>chatId</code>). The creation of a chat (choosing datasource, pinning the
+        latest snapshot) is a Phase 1/2 concern or a separate UI flow not yet built.
+      </td>
+      <td><span class="status status-pending">Pending UI/Phase 1–2.</span> No clash — Phase 4 only handles streaming for an existing chat.</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td><span class="tag deviation">Deviation</span></td>
+      <td>
+        <strong><code>LLM_MODEL</code> is <code>z.string().min(1)</code></strong>, not validated
+        as <code>provider/model</code> format. The Mastra model router will error at runtime
+        if the format is wrong, but we don't fail at env-parse time.
+      </td>
+      <td><span class="status status-ok">Acceptable for MVP.</span> Runtime validation provides clear error if the model string is wrong.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Integration Contract</h2>
+<p>Phase 4 depends on these interfaces from other phases:</p>
+<table>
+  <thead><tr><th>Dependency</th><th>Phase</th><th>Contract</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>chat</code> table</td>
+      <td>Phase 0</td>
+      <td>Has <code>id</code>, <code>datasourceId</code>, <code>snapshotId</code> columns</td>
+      <td><span class="status status-ok">✓ Exists</span></td>
+    </tr>
+    <tr>
+      <td><code>schema_snapshot</code> table</td>
+      <td>Phase 0</td>
+      <td>Has <code>id</code>, <code>renderedText</code>, <code>definition</code> (jsonb with <code>.dialect</code>) columns</td>
+      <td><span class="status status-ok">✓ Exists</span></td>
+    </tr>
+    <tr>
+      <td><code>run_read_query</code> tool</td>
+      <td>Phase 3</td>
+      <td>Mastra tool reading <code>datasourceId</code>, <code>chatId</code>, <code>messageId</code> from RequestContext</td>
+      <td><span class="status status-pending">In progress</span></td>
+    </tr>
+    <tr>
+      <td>Chat creation endpoint</td>
+      <td>Phase 1/2</td>
+      <td>UI calls to create a chat row with a pinned snapshotId</td>
+      <td><span class="status status-pending">Not started</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Environment Variables Required</h2>
+<pre>
+# Add to apps/web/.env
+LLM_BASE_URL=https://api.openai.com/v1    # Or any OpenAI-compatible endpoint
+LLM_API_KEY=sk-...                         # API key for the above
+LLM_MODEL=openai/gpt-4o-mini              # provider/model format
+</pre>
+
+<h2>How to Wire the Phase 3 Tool</h2>
+<p>When <code>run_read_query</code> is ready, update <code>analyst-agent.ts</code>:</p>
+<pre>
+// In the tools function:
+tools: ({ requestContext: _requestContext }) => {
+  return { runReadQuery: runReadQueryTool };
+},
+</pre>
+
+</body>
+</html>
