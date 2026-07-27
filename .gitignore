@@ -53,3 +53,8 @@ coverage
 .cache
 tmp
 temp
+recordings/
+*.mov
+*.mp4
+*.webm
+
