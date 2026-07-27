@@ -1,0 +1,24 @@
+{
+  "name": "@nextjs-starter/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@nextjs-starter/db": "workspace:*",
+    "@nextjs-starter/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@nextjs-starter/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
