@@ -2,9 +2,8 @@ import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
 import { env } from "@nextjs-starter/env/server";
-
-import type { AnalystRequestContext } from "../types";
 import { runReadQueryTool } from "../tools/run-read-query";
+import type { AnalystRequestContext } from "../types";
 
 /**
  * System prompt template for the analyst agent.

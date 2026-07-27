@@ -29,11 +29,11 @@ import {
 	PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { TimeDisplay } from "@/components/chat/time-display";
 import {
 	ToolCallDisplay,
 	toolPartToDisplayProps,
 } from "@/components/chat/tool-call-display";
-import { TimeDisplay } from "@/components/chat/time-display";
 import { parseAssistantText } from "@/lib/parse-assistant-text";
 import { trpc } from "@/utils/trpc";
 
@@ -100,7 +100,7 @@ export default function ChatPage() {
 				)}
 				<div className="ml-auto flex items-center gap-3">
 					{chat?.createdAt && (
-						<span className="hidden sm:flex items-center gap-1 text-muted-foreground text-xs">
+						<span className="hidden items-center gap-1 text-muted-foreground text-xs sm:flex">
 							<TimeDisplay
 								date={chat.createdAt}
 								format="datetime"
@@ -147,9 +147,12 @@ export default function ChatPage() {
 												</MessageContent>
 												<div className="flex justify-end px-1">
 													<TimeDisplay
-														date={(message as { createdAt?: Date | string }).createdAt ?? new Date()}
+														date={
+															(message as { createdAt?: Date | string })
+																.createdAt ?? new Date()
+														}
 														format="time"
-														className="text-[10px] text-muted-foreground/60 select-none"
+														className="select-none text-[10px] text-muted-foreground/60"
 													/>
 												</div>
 											</Message>
@@ -193,9 +196,12 @@ export default function ChatPage() {
 												{isLastSegment && (
 													<div className="flex justify-start px-1">
 														<TimeDisplay
-															date={(message as { createdAt?: Date | string }).createdAt ?? new Date()}
+															date={
+																(message as { createdAt?: Date | string })
+																	.createdAt ?? new Date()
+															}
 															format="time"
-															className="text-[10px] text-muted-foreground/60 select-none"
+															className="select-none text-[10px] text-muted-foreground/60"
 														/>
 													</div>
 												)}
@@ -228,7 +234,9 @@ export default function ChatPage() {
 								<MessageContent>
 									<div className="flex items-center gap-2 py-1 text-muted-foreground text-xs">
 										<Spinner className="size-3.5" />
-										<Shimmer duration={1.5}>Thinking and running query…</Shimmer>
+										<Shimmer duration={1.5}>
+											Thinking and running query…
+										</Shimmer>
 									</div>
 								</MessageContent>
 							</Message>
@@ -245,7 +253,9 @@ export default function ChatPage() {
 							onChange={(e) => setInput(e.target.value)}
 							value={input}
 							placeholder={
-								isBusy ? "Query is running, please wait…" : "Ask about your data…"
+								isBusy
+									? "Query is running, please wait…"
+									: "Ask about your data…"
 							}
 							disabled={isBusy}
 						/>
@@ -257,11 +267,11 @@ export default function ChatPage() {
 									? "Query is running…"
 									: "Enter to send · Shift+Enter for a new line"}
 							</span>
-							<span className="text-muted-foreground/40 font-normal">•</span>
+							<span className="font-normal text-muted-foreground/40">•</span>
 							<TimeDisplay
 								format="live"
 								showIcon
-								className="text-muted-foreground/80 text-[11px]"
+								className="text-[11px] text-muted-foreground/80"
 							/>
 						</div>
 						<PromptInputSubmit

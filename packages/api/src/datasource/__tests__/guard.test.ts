@@ -210,14 +210,19 @@ LIMIT 10;
 			const inResult = checkReadOnlySql(inSql);
 			expect(inResult.ok).toBe(true);
 			if (inResult.ok) {
-				expect(inResult.sql).toBe("SELECT * FROM customers WHERE country IN ('USA', 'UK')");
+				expect(inResult.sql).toBe(
+					"SELECT * FROM customers WHERE country IN ('USA', 'UK')",
+				);
 			}
 
-			const orSql = "SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'";
+			const orSql =
+				"SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'";
 			const orResult = checkReadOnlySql(orSql);
 			expect(orResult.ok).toBe(true);
 			if (orResult.ok) {
-				expect(orResult.sql).toBe("SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'");
+				expect(orResult.sql).toBe(
+					"SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'",
+				);
 			}
 		});
 
