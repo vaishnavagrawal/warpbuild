@@ -4,9 +4,9 @@ import { RequestContext } from "@mastra/core/request-context";
 import { db } from "@nextjs-starter/db";
 import { chat } from "@nextjs-starter/db/schema/chat";
 import { schemaSnapshot } from "@nextjs-starter/db/schema/datasource";
+import { createUIMessageStreamResponse } from "ai";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createUIMessageStreamResponse } from "ai";
 
 import { mastra } from "@/mastra";
 import type { AnalystRequestContext } from "@/mastra/types";
@@ -38,10 +38,7 @@ export async function POST(req: Request) {
 	const { chatId, ...params } = body;
 
 	if (!chatId || typeof chatId !== "string") {
-		return NextResponse.json(
-			{ error: "chatId is required" },
-			{ status: 400 },
-		);
+		return NextResponse.json({ error: "chatId is required" }, { status: 400 });
 	}
 
 	// ─── Resolve chat → datasource → snapshot ──────────────────────────────────
@@ -53,10 +50,7 @@ export async function POST(req: Request) {
 		.limit(1);
 
 	if (!chatRow) {
-		return NextResponse.json(
-			{ error: "Chat not found" },
-			{ status: 404 },
-		);
+		return NextResponse.json({ error: "Chat not found" }, { status: 404 });
 	}
 
 	const [snapshot] = await db
@@ -79,6 +73,7 @@ export async function POST(req: Request) {
 	requestContext.set("snapshotId", chatRow.snapshotId);
 	requestContext.set("renderedText", snapshot.renderedText);
 	requestContext.set("dialect", snapshot.definition.dialect);
+	requestContext.set("chatId" as never, chatId);
 
 	// ─── Stream ────────────────────────────────────────────────────────────────
 

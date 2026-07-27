@@ -23,6 +23,7 @@
 		"nanoid": "^6.0.0",
 		"next": "catalog:",
 		"pg": "^8.22.0",
+		"unique-names-generator": "^4.7.1",
 		"zod": "catalog:"
 	},
 	"devDependencies": {

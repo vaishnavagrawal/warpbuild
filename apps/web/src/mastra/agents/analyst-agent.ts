@@ -4,6 +4,7 @@ import { PostgresStore } from "@mastra/pg";
 import { env } from "@nextjs-starter/env/server";
 
 import type { AnalystRequestContext } from "../types";
+import { runReadQueryTool } from "../tools/run-read-query";
 
 /**
  * System prompt template for the analyst agent.
@@ -111,12 +112,7 @@ export const analystAgent = new Agent({
 		);
 	},
 
-	// Tools will be added when Phase 3 (run_read_query) is complete.
-	// Using a dynamic function so tools will automatically receive RequestContext.
 	tools: ({ requestContext: _requestContext }) => {
-		// Phase 3 stub — return empty tools until run_read_query is implemented.
-		// Once available, import and wire here:
-		// return { runReadQuery }
-		return {};
+		return { runReadQuery: runReadQueryTool };
 	},
 });

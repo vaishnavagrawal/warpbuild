@@ -2,6 +2,16 @@ import type { SslMode } from "@nextjs-starter/db/schema/datasource";
 import { env } from "@nextjs-starter/env/server";
 import { Client, type ClientConfig } from "pg";
 
+// Redaction/describe helpers live in redact.ts (no env or pg imports, so they
+// stay unit-testable) and are re-exported here to keep one import site.
+export {
+	type ConnectionTarget,
+	connectionErrorMessage,
+	describeConnection,
+	safeConnectionErrorMessage,
+	sanitizeConnectionError,
+} from "./redact";
+
 /**
  * Everything needed to open a connection to an external datasource. Kept as a
  * plain object (not the drizzle row) so callers can pass unsaved form input to
@@ -32,38 +42,6 @@ export function sslConfigFor(sslMode: SslMode): ClientConfig["ssl"] {
 }
 
 /**
- * A redacted view of a connection string, safe to return to the client.
- * The password is never included.
- */
-export type ConnectionTarget = {
-	host: string;
-	port: number | null;
-	database: string;
-	user: string;
-};
-
-/**
- * Parse a Postgres connection string into its non-secret parts.
- * Returns `null` when the string is unparseable rather than throwing, so
- * read procedures can still render a row with a broken connection string.
- */
-export function describeConnection(
-	connectionString: string,
-): ConnectionTarget | null {
-	try {
-		const url = new URL(connectionString);
-		return {
-			host: url.hostname,
-			port: url.port ? Number(url.port) : null,
-			database: url.pathname.replace(/^\//, "") || "",
-			user: decodeURIComponent(url.username),
-		};
-	} catch {
-		return null;
-	}
-}
-
-/**
  * Open a short-lived client, run `fn`, and always close it.
  *
  * Serverless plus an external DB means no long-lived pool is held across a
@@ -89,10 +67,4 @@ export async function withDatasourceClient<T>(
 			// Closing is best-effort; a failed teardown must not mask the result.
 		});
 	}
-}
-
-/** Normalise a driver/DNS error into a single-line message for the UI. */
-export function connectionErrorMessage(error: unknown): string {
-	if (error instanceof Error) return error.message;
-	return String(error);
 }

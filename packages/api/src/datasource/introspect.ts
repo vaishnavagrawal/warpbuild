@@ -80,13 +80,31 @@ async function queryColumns(client: Client): Promise<ColumnRow[]> {
 	return res.rows as ColumnRow[];
 }
 
+export function parsePgArray(val: unknown): string[] {
+	if (Array.isArray(val)) return val;
+	if (typeof val === "string") {
+		const trimmed = val.trim();
+		if (!trimmed) return [];
+		const content =
+			trimmed.startsWith("{") && trimmed.endsWith("}")
+				? trimmed.slice(1, -1)
+				: trimmed;
+		if (!content) return [];
+		return content
+			.split(",")
+			.map((s) => s.trim().replace(/^"|"$/g, ""))
+			.filter(Boolean);
+	}
+	return [];
+}
+
 interface ForeignKeyRow {
 	schema_name: string;
 	table_name: string;
-	columns: string[];
+	columns: unknown;
 	ref_schema: string;
 	ref_table: string;
-	ref_columns: string[];
+	ref_columns: unknown;
 }
 
 async function queryForeignKeys(client: Client): Promise<ForeignKeyRow[]> {
@@ -99,7 +117,7 @@ async function queryForeignKeys(client: Client): Promise<ForeignKeyRow[]> {
 				FROM unnest(con.conkey) WITH ORDINALITY AS k(num, ord)
 				JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.num
 				ORDER BY k.ord
-			) AS columns,
+			)::text[] AS columns,
 			rn.nspname AS ref_schema,
 			rc.relname AS ref_table,
 			ARRAY(
@@ -107,7 +125,7 @@ async function queryForeignKeys(client: Client): Promise<ForeignKeyRow[]> {
 				FROM unnest(con.confkey) WITH ORDINALITY AS k(num, ord)
 				JOIN pg_attribute a ON a.attrelid = con.confrelid AND a.attnum = k.num
 				ORDER BY k.ord
-			) AS ref_columns
+			)::text[] AS ref_columns
 		FROM pg_constraint con
 		JOIN pg_class c ON c.oid = con.conrelid
 		JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -203,10 +221,10 @@ function assembleDefinition(
 						})),
 					foreignKeys: (fkMap.get(`${schemaName}.${tableName}`) ?? []).map(
 						(fk) => ({
-							columns: fk.columns,
+							columns: parsePgArray(fk.columns),
 							refSchema: fk.ref_schema,
 							refTable: fk.ref_table,
-							refColumns: fk.ref_columns,
+							refColumns: parsePgArray(fk.ref_columns),
 						}),
 					),
 				})),

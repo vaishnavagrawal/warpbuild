@@ -25,6 +25,7 @@ export type GuardResult =
  */
 function tokenize(input: string): { code: string[]; full: string } {
 	const codeSegments: string[] = [];
+	let full = "";
 	let i = 0;
 	const len = input.length;
 	let current = "";
@@ -34,7 +35,10 @@ function tokenize(input: string): { code: string[]; full: string } {
 		if (input[i] === "'") {
 			// Everything inside quotes is NOT code — flush current code
 			codeSegments.push(current);
+			full += current;
 			current = "";
+
+			const startIdx = i;
 			i++; // skip opening quote
 			while (i < len) {
 				if (input[i] === "'" && input[i + 1] === "'") {
@@ -47,6 +51,31 @@ function tokenize(input: string): { code: string[]; full: string } {
 					i++;
 				}
 			}
+			full += input.slice(startIdx, i);
+			continue;
+		}
+
+		// Double-quoted identifier: "col;name". Not code — a quoted identifier can
+		// never be a statement boundary or a keyword, so treating it as opaque both
+		// removes false-positive rejections and gives nothing away to an attacker.
+		if (input[i] === '"') {
+			codeSegments.push(current);
+			full += current;
+			current = "";
+
+			const startIdx = i;
+			i++; // skip opening quote
+			while (i < len) {
+				if (input[i] === '"' && input[i + 1] === '"') {
+					i += 2; // escaped quote inside identifier
+				} else if (input[i] === '"') {
+					i++; // skip closing quote
+					break;
+				} else {
+					i++;
+				}
+			}
+			full += input.slice(startIdx, i);
 			continue;
 		}
 
@@ -56,7 +85,10 @@ function tokenize(input: string): { code: string[]; full: string } {
 			if (tagMatch) {
 				const tag = tagMatch[0]; // e.g. $$ or $tag$
 				codeSegments.push(current);
+				full += current;
 				current = "";
+
+				const startIdx = i;
 				i += tag.length; // skip opening tag
 				const endIdx = input.indexOf(tag, i);
 				if (endIdx === -1) {
@@ -65,6 +97,7 @@ function tokenize(input: string): { code: string[]; full: string } {
 				} else {
 					i = endIdx + tag.length;
 				}
+				full += input.slice(startIdx, i);
 				continue;
 			}
 		}
@@ -78,6 +111,7 @@ function tokenize(input: string): { code: string[]; full: string } {
 			} else {
 				i = nlIdx + 1;
 				current += " "; // replace comment with space to avoid token merging
+				full += " ";
 			}
 			continue;
 		}
@@ -90,6 +124,7 @@ function tokenize(input: string): { code: string[]; full: string } {
 			} else {
 				i = endIdx + 2;
 				current += " "; // replace comment with space
+				full += " ";
 			}
 			continue;
 		}
@@ -99,8 +134,9 @@ function tokenize(input: string): { code: string[]; full: string } {
 	}
 
 	codeSegments.push(current);
+	full += current;
 
-	return { code: codeSegments, full: codeSegments.join("") };
+	return { code: codeSegments, full };
 }
 
 /**
@@ -144,12 +180,19 @@ const FORBIDDEN_KEYWORDS = [
 	"ROLLBACK",
 	"SAVEPOINT",
 	"SECURITY",
-	"pg_read_file",
-	"pg_write",
-	"lo_import",
-	"lo_export",
-	"dblink",
 ] as const;
+
+/**
+ * Dangerous function families, matched as prefixes rather than exact names.
+ *
+ * Exact-name matching is a trap here: `\bdblink\b` does not match
+ * `dblink_exec` because `_` is a word character, so a single missing variant is
+ * a bypass. These patterns cover the whole family instead. `dblink` matters
+ * most — it writes to a *remote* server, which transaction-level READ ONLY on
+ * this connection cannot stop.
+ */
+const FORBIDDEN_FUNCTION_RE =
+	/\b(?:dblink\w*|lo_(?:import|export)\w*|pg_\w*(?:read|write)\w*|set_config|pg_terminate_backend|pg_cancel_backend)\b/i;
 
 /**
  * Build a single regex that matches any of the forbidden keywords as whole words.
@@ -240,6 +283,15 @@ export function checkReadOnlySql(input: string): GuardResult {
 			ok: false,
 			reason: "not_read_only",
 			message: `Forbidden keyword detected: ${forbiddenMatch[1].toUpperCase()}.`,
+		};
+	}
+
+	const forbiddenFunction = codeOnly.match(FORBIDDEN_FUNCTION_RE);
+	if (forbiddenFunction) {
+		return {
+			ok: false,
+			reason: "not_read_only",
+			message: `Forbidden function detected: ${forbiddenFunction[0]}.`,
 		};
 	}
 

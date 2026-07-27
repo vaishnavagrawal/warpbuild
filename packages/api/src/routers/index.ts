@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { chatRouter } from "./chat";
 import { datasourceRouter } from "./datasource";
 import { schemaRouter } from "./schema";
 
@@ -12,6 +13,7 @@ export const appRouter = router({
 			user: ctx.session.user,
 		};
 	}),
+	chat: chatRouter,
 	datasource: datasourceRouter,
 	schema: schemaRouter,
 });

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { SchemaDefinition } from "@nextjs-starter/db/schema/datasource";
+import { parsePgArray } from "./introspect";
 
 /**
  * Compact DDL-ish text for an LLM system prompt. Token-lean, no ASCII art.
@@ -7,14 +8,14 @@ import type { SchemaDefinition } from "@nextjs-starter/db/schema/datasource";
 export function renderSchemaText(def: SchemaDefinition): string {
 	const lines: string[] = [];
 
-	for (const schema of def.schemas) {
-		for (const table of schema.tables) {
+	for (const schema of def.schemas ?? []) {
+		for (const table of schema.tables ?? []) {
 			const header = table.comment
 				? `${schema.name}.${table.name} (${table.kind}) -- ${table.comment}`
 				: `${schema.name}.${table.name} (${table.kind})`;
 			lines.push(header);
 
-			for (const col of table.columns) {
+			for (const col of table.columns ?? []) {
 				let line = `  ${col.name} ${col.dataType}`;
 				if (!col.nullable) line += " NOT NULL";
 				if (col.default) line += ` DEFAULT ${col.default}`;
@@ -23,9 +24,11 @@ export function renderSchemaText(def: SchemaDefinition): string {
 				lines.push(line);
 			}
 
-			for (const fk of table.foreignKeys) {
+			for (const fk of table.foreignKeys ?? []) {
+				const cols = parsePgArray(fk.columns).join(", ");
+				const refCols = parsePgArray(fk.refColumns).join(", ");
 				lines.push(
-					`  FK (${fk.columns.join(", ")}) -> ${fk.refSchema}.${fk.refTable}(${fk.refColumns.join(", ")})`,
+					`  FK (${cols}) -> ${fk.refSchema}.${fk.refTable}(${refCols})`,
 				);
 			}
 

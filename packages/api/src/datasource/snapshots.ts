@@ -6,7 +6,10 @@ import {
 } from "@nextjs-starter/db/schema/datasource";
 import { desc, eq } from "drizzle-orm";
 
-import { connectionErrorMessage, type DatasourceConnection } from "./connect";
+import {
+	type DatasourceConnection,
+	safeConnectionErrorMessage,
+} from "./connect";
 import { introspectPostgres } from "./introspect";
 import {
 	estimateTokens,
@@ -64,16 +67,19 @@ export async function refreshSnapshot(opts: {
 	try {
 		definition = await introspectPostgres(connection);
 	} catch (err) {
-		// Record failure on the datasource but never create a snapshot row
+		// Record failure on the datasource but never create a snapshot row.
+		// Sanitize first: lastError is surfaced to the client by the redacted
+		// datasource projection, and the rethrown message reaches the tRPC caller.
+		const message = safeConnectionErrorMessage(err, ds.connectionString);
 		await db
 			.update(datasource)
 			.set({
 				status: "error",
 				lastCheckedAt: new Date(),
-				lastError: connectionErrorMessage(err),
+				lastError: message,
 			})
 			.where(eq(datasource.id, datasourceId));
-		throw err;
+		throw new Error(message);
 	}
 
 	const latest = await getLatestSnapshot(datasourceId);

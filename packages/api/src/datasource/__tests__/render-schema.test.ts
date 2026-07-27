@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SchemaDefinition } from "@nextjs-starter/db/schema/datasource";
 
+import { parsePgArray } from "../introspect";
 import {
 	estimateTokens,
 	renderSchemaText,
@@ -100,6 +101,18 @@ describe("schemaChecksum", () => {
 	});
 });
 
+describe("parsePgArray", () => {
+	test("parses array literals, raw string arrays, and JS arrays", () => {
+		expect(parsePgArray(["a", "b"])).toEqual(["a", "b"]);
+		expect(parsePgArray("{a,b}")).toEqual(["a", "b"]);
+		expect(parsePgArray('{"col_1","col_2"}')).toEqual(["col_1", "col_2"]);
+		expect(parsePgArray("{user_id}")).toEqual(["user_id"]);
+		expect(parsePgArray("user_id")).toEqual(["user_id"]);
+		expect(parsePgArray(null)).toEqual([]);
+		expect(parsePgArray(undefined)).toEqual([]);
+	});
+});
+
 describe("renderSchemaText", () => {
 	test("produces readable output", () => {
 		const text = renderSchemaText(baseDef);
@@ -107,6 +120,32 @@ describe("renderSchemaText", () => {
 		expect(text).toContain("id integer NOT NULL");
 		expect(text).toContain("PK");
 		expect(text).toContain("-- Unique email");
+	});
+
+	test("handles string-formatted foreign key columns without throwing", () => {
+		const defWithFk: SchemaDefinition = {
+			...baseDef,
+			schemas: [
+				{
+					name: "public",
+					tables: [
+						{
+							...baseDef.schemas[0]!.tables[0]!,
+							foreignKeys: [
+								{
+									columns: "{user_id}" as unknown as string[],
+									refSchema: "public",
+									refTable: "profiles",
+									refColumns: "{id}" as unknown as string[],
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+		const text = renderSchemaText(defWithFk);
+		expect(text).toContain("FK (user_id) -> public.profiles(id)");
 	});
 });
 

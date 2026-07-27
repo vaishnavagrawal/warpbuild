@@ -3,8 +3,8 @@ import { datasource } from "@nextjs-starter/db/schema/datasource";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import {
-	connectionErrorMessage,
 	type DatasourceConnection,
+	safeConnectionErrorMessage,
 	withDatasourceClient,
 } from "../datasource/connect";
 import {
@@ -128,7 +128,8 @@ export const datasourceRouter = router({
 
 			return { ok: true as const, serverVersion: result, checkedAt };
 		} catch (err) {
-			const message = connectionErrorMessage(err);
+			// lastError is returned by the redacted projection, so sanitize first.
+			const message = safeConnectionErrorMessage(err, row.connectionString);
 			await db
 				.update(datasource)
 				.set({ status: "error", lastCheckedAt: checkedAt, lastError: message })
@@ -164,7 +165,7 @@ export const datasourceRouter = router({
 			} catch (err) {
 				return {
 					ok: false as const,
-					error: connectionErrorMessage(err),
+					error: safeConnectionErrorMessage(err, conn.connectionString),
 					checkedAt,
 				};
 			}

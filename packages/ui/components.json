@@ -1,24 +1,24 @@
 {
-  "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "base-lyra",
-  "rsc": true,
-  "tsx": true,
-  "tailwind": {
-    "config": "",
-    "css": "src/styles/globals.css",
-    "baseColor": "neutral",
-    "cssVariables": true,
-    "prefix": ""
-  },
-  "iconLibrary": "lucide",
-  "aliases": {
-    "components": "@nextjs-starter/ui/components",
-    "utils": "@nextjs-starter/ui/lib/utils",
-    "hooks": "@nextjs-starter/ui/hooks",
-    "lib": "@nextjs-starter/ui/lib",
-    "ui": "@nextjs-starter/ui/components"
-  },
-  "menuColor": "default",
-  "menuAccent": "subtle",
-  "registries": {}
+	"$schema": "https://ui.shadcn.com/schema.json",
+	"style": "base-lyra",
+	"rsc": true,
+	"tsx": true,
+	"tailwind": {
+		"config": "",
+		"css": "src/styles/globals.css",
+		"baseColor": "neutral",
+		"cssVariables": true,
+		"prefix": ""
+	},
+	"iconLibrary": "lucide",
+	"aliases": {
+		"components": "@nextjs-starter/ui/components",
+		"utils": "@nextjs-starter/ui/lib/utils",
+		"hooks": "@nextjs-starter/ui/hooks",
+		"lib": "@nextjs-starter/ui/lib",
+		"ui": "@nextjs-starter/ui/components"
+	},
+	"menuColor": "default",
+	"menuAccent": "subtle",
+	"registries": {}
 }

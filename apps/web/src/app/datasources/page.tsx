@@ -92,7 +92,14 @@ export default function DatasourcesPage() {
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6 p-6">
-			<h1 className="font-semibold text-lg">Datasource Configuration</h1>
+			<div className="space-y-1">
+				<h1 className="font-semibold text-base tracking-tight">
+					Datasource configuration
+				</h1>
+				<p className="text-muted-foreground text-sm">
+					Connect a PostgreSQL database, then introspect its schema.
+				</p>
+			</div>
 
 			<Card>
 				<CardHeader>

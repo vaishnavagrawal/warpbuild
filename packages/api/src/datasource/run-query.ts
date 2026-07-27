@@ -8,7 +8,11 @@ import { queryLog } from "@nextjs-starter/db/schema/query-log";
 import { env } from "@nextjs-starter/env/server";
 import { eq } from "drizzle-orm";
 
-import { connectionErrorMessage, withDatasourceClient } from "./connect";
+import {
+	connectionErrorMessage,
+	sanitizeConnectionError,
+	withDatasourceClient,
+} from "./connect";
 import { checkReadOnlySql } from "./guard";
 
 export type ReadQueryResult =
@@ -238,23 +242,12 @@ function serializeValue(value: unknown): unknown {
 
 /**
  * Strip any occurrence of the connection string from an error message to
- * prevent credential leakage.
+ * prevent credential leakage. Delegates to the shared implementation in
+ * connect.ts so there is one place to be wrong.
  */
 function sanitizeErrorMessage(
 	message: string,
 	connectionString: string,
 ): string {
-	if (!connectionString) return message;
-	// Also try to strip the URL-parsed host/password components
-	let safe = message.replaceAll(connectionString, "[REDACTED]");
-	try {
-		const url = new URL(connectionString);
-		if (url.password) {
-			safe = safe.replaceAll(url.password, "[REDACTED]");
-			safe = safe.replaceAll(decodeURIComponent(url.password), "[REDACTED]");
-		}
-	} catch {
-		// If the connection string is not a valid URL, just do the string replacement
-	}
-	return safe;
+	return sanitizeConnectionError(message, connectionString);
 }

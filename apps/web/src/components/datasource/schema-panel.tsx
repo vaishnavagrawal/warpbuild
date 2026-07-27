@@ -180,13 +180,14 @@ interface SchemaDefinition {
 }
 
 interface TableListProps {
-	definition: SchemaDefinition;
+	definition?: SchemaDefinition | null;
 }
 
 function TableList({ definition }: TableListProps) {
-	const allTables = definition.schemas.flatMap((s) =>
-		s.tables.map((t) => ({ ...t, schema: s.name })),
-	);
+	const allTables =
+		definition?.schemas?.flatMap((s) =>
+			(s.tables ?? []).map((t) => ({ ...t, schema: s.name })),
+		) ?? [];
 
 	if (allTables.length === 0) {
 		return <p className="text-muted-foreground text-xs">No tables found.</p>;
@@ -204,6 +205,8 @@ function TableList({ definition }: TableListProps) {
 }
 
 function TableItem({ table }: { table: TableDefinition & { schema: string } }) {
+	const columns = table.columns ?? [];
+
 	return (
 		<Collapsible>
 			<CollapsibleTrigger className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted [&[data-open]>svg]:rotate-90">
@@ -215,7 +218,7 @@ function TableItem({ table }: { table: TableDefinition & { schema: string } }) {
 					{table.name}
 				</span>
 				<span className="ml-auto text-muted-foreground">
-					{table.columns.length} col{table.columns.length !== 1 ? "s" : ""}
+					{columns.length} col{columns.length !== 1 ? "s" : ""}
 				</span>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
@@ -232,7 +235,7 @@ function TableItem({ table }: { table: TableDefinition & { schema: string } }) {
 							</tr>
 						</thead>
 						<tbody>
-							{table.columns.map((col) => (
+							{columns.map((col) => (
 								<tr key={col.name}>
 									<td className="py-0.5 pr-4">
 										{col.isPrimaryKey && (

@@ -191,12 +191,34 @@ LIMIT 10;
 			const sql = "SELECT * FROM logs WHERE action = 'delete'";
 			const result = checkReadOnlySql(sql);
 			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.sql).toBe("SELECT * FROM logs WHERE action = 'delete'");
+			}
 		});
 
 		test("accepts SELECT with string literal containing semicolons", () => {
 			const sql = "SELECT * FROM t WHERE val = 'a;b;c'";
 			const result = checkReadOnlySql(sql);
 			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.sql).toBe("SELECT * FROM t WHERE val = 'a;b;c'");
+			}
+		});
+
+		test("preserves string literals in WHERE clause (IN and OR)", () => {
+			const inSql = "SELECT * FROM customers WHERE country IN ('USA', 'UK')";
+			const inResult = checkReadOnlySql(inSql);
+			expect(inResult.ok).toBe(true);
+			if (inResult.ok) {
+				expect(inResult.sql).toBe("SELECT * FROM customers WHERE country IN ('USA', 'UK')");
+			}
+
+			const orSql = "SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'";
+			const orResult = checkReadOnlySql(orSql);
+			expect(orResult.ok).toBe(true);
+			if (orResult.ok) {
+				expect(orResult.sql).toBe("SELECT * FROM customers WHERE country = 'USA' OR country = 'UK'");
+			}
 		});
 
 		test("accepts SELECT with string literal containing INSERT keyword", () => {
